@@ -7,6 +7,44 @@ const AdmZip = require('adm-zip')
 const path = require('path')
 const axios = require('axios')
 const { exec } = require('child_process')
+var styles = {
+	'reset': '\x1B[0m',
+	'bright': '\x1B[1m',
+	'grey': '\x1B[2m',
+	'italic': '\x1B[3m',
+	'underline': '\x1B[4m',
+	'reverse': '\x1B[7m',
+	'hidden': '\x1B[8m',
+	'black': '\x1B[30m',
+	'red': '\x1B[31m',
+	'green': '\x1B[32m',
+	'yellow': '\x1B[33m',
+	'blue': '\x1B[34m',
+	'magenta': '\x1B[35m',
+	'cyan': '\x1B[36m',
+	'white': '\x1B[37m',
+	'blackBG': '\x1B[40m',
+	'redBG': '\x1B[41m',
+	'greenBG': '\x1B[42m',
+	'yellowBG': '\x1B[43m',
+	'blueBG': '\x1B[44m',
+	'magentaBG': '\x1B[45m',
+	'cyanBG': '\x1B[46m',
+	'whiteBG': '\x1B[47m'
+}
+
+function colors(keys, source) {
+	var values = ''
+	if(typeof keys === 'string'){
+			values = styles[keys]
+	}
+	else {
+			keys.forEach(key => {
+					values += styles[key]
+			});
+	}
+	return values + source + styles['reset']
+}
 var args = minimist(process.argv.slice(2), {
 	alias: {
 		d: 'doc_dir',
@@ -82,7 +120,7 @@ function downloadFile(url, savePath) {
 					return
 				}
 				const percent = ((progressEvent.loaded / progressEvent.total) * 100).toFixed(2)
-				printCurrrLine(`Downloading... ${percent}%\r`)
+				printCurrrLine(`Downloading... ${colors('cyan', `${percent}%`)}\r`)
 			},
 		})
 			.then((response) => {
@@ -103,12 +141,12 @@ function downloadFile(url, savePath) {
 
 async function checkFFmpeg(ffmpegPath) {
 	if (!fs.existsSync(ffmpegPath)) {
-		console.warn('首次使用图片转码功能需要下载 FFMpeg ,请稍等片刻 ...')
+		console.log(colors('cyan', '首次使用图片转码功能需要下载 FFMpeg ,请稍等片刻 ...'))
 		const ffmpegZip = path.join(__dirname, 'ffmpeg.zip')
 		try {
 			await downloadFile('https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip', ffmpegZip)
 		} catch (error) {
-			console.error('下载 ffmpeg 失败\n如多次下载失败可自行手动下载 ffmpeg.exe 放在软件目录\n错误提示: ', error.message)
+			console.log(colors('red', '下载 ffmpeg 失败\n如多次下载失败可自行手动下载 ffmpeg.exe 放在软件目录\n错误提示: ' + error.message))
 			process.exit()
 		}
 		const archive = new AdmZip(ffmpegZip)
@@ -123,7 +161,7 @@ async function checkFFmpeg(ffmpegPath) {
 		if (isOk) {
 			fs.unlinkSync(ffmpegZip)
 		} else {
-			console.error('解压 ffmpeg 失败')
+			console.log(colors('red', '解压 ffmpeg 失败, 请手动下载 ffmpeg.exe 放在软件目录'))
 		}
 	}
 }
@@ -201,13 +239,13 @@ async function init(args) {
 	}
 	let doc_dir = path.join(process.cwd(), args.doc_dir)
 	if (!fs.existsSync(doc_dir)) {
-		console.error('文档目录不存在,请确认是在文档根目录执行或自行指定文档目录')
+		console.log(colors('red', '文档目录不存在,请确认是在文档根目录执行或自行指定文档目录'))
 		process.exit()
 	}
 
 	let img_dir = path.join(process.cwd(), args.img_dir)
 	if (!fs.existsSync(img_dir)) {
-		console.error('图片目录不存在,请确认是在文档根目录执行或自行指定图片目录')
+		console.log(colors('red', '图片目录不存在,请确认是在文档根目录执行或自行指定图片目录'))
 		process.exit()
 	}
 
@@ -225,7 +263,7 @@ async function init(args) {
 	let docFiles = getFiles(doc_dir, (file) => file.endsWith('.md'))
 	const numLength = docFiles.length.toString().length
 	for (let i = 0; i < docFiles.length; i++) {
-		printCurrrLine(`[${(i + 1).toString().padStart(numLength, '0')}/${docFiles.length}] ${docFiles[i].replace(doc_dir, '')}`)
+		printCurrrLine(`[${(i + 1).toString().padStart(numLength, '0')}/${docFiles.length}] ${colors('cyan', `${docFiles[i].replace(doc_dir, '')}`)}`)
 		const docFile = docFiles[i]
 		const dirName = path.dirname(docFile)
 		const saveImgDirName = `images\\${dirName.replace(doc_dir, '')}`
@@ -267,13 +305,13 @@ async function init(args) {
 						clearLine()
 					} catch (error) {
 						clearLine()
-						console.error('转换图片失败:', error.message)
+						console.log('转换图片失败：', colors('red', error.message))
 					}
 				}
 				docContent = docContent.replaceAll(imgUrl, imgDocFileName)
 				imgCount++
 			} catch (error) {
-				console.error('下载图片失败:', error.message)
+				console.log('下载图片失败:', colors('red', error.message))
 			}
 		}
 		if (hasImg) {
@@ -282,7 +320,7 @@ async function init(args) {
 			clearLine()
 		}
 	}
-	console.log(`[${docFiles.length}/${docFiles.length}] 文档分析完成,处理了 ${imgCount} 张图片`)
+	console.log(`[${docFiles.length}/${docFiles.length}] 文档分析完成,处理了 `, colors('cyan', `${imgCount}`), ' 张图片')
 }
 if (args.help) {
 	help()
